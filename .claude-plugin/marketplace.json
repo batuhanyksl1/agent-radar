@@ -1,0 +1,6 @@
+{
+  "name": "agent-radar",
+  "description": "Agent Radar: a live view of the agents in your Claude Code sessions.",
+  "owner": { "name": "Batuhan Yüksel" },
+  "plugins": [{ "name": "agent-radar", "source": "./" }]
+}

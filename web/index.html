@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Radar</title>
+<style>
+:root {
+  --bg: #121216; --panel: #1a1a20; --card: rgba(255,255,255,.045); --line: rgba(255,255,255,.09);
+  --text: #ececf1; --dim: #9a9aa6; --soft: #b9b9c4;
+  --green: #34d399; --amber: #fbbf24; --red: #f87171; --gray: #8b8b98; --cyan: #67e8f9;
+  --read: #60a5fa; --write: #c084fc; --run: #34d399; --handoff: #fbbf24; --web: #22d3ee; --other: #94a3b8;
+}
+@media (prefers-color-scheme: light) {
+  :root { --bg: #f5f5f7; --panel: #fff; --card: rgba(0,0,0,.035); --line: rgba(0,0,0,.1);
+    --text: #17171c; --dim: #5b5b66; --soft: #3d3d47; --cyan: #0e7490; --amber: #b45309; --green: #059669; --red: #dc2626; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text);
+  font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+header { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 14px 24px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line); }
+header h1 { font-size: 17px; margin: 0; letter-spacing: -.01em; }
+.conn { display: inline-flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); display: inline-block; flex: none; }
+.dot.green { background: var(--green); } .dot.amber { background: var(--amber); } .dot.red { background: var(--red); }
+.pulse { animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.spacer { flex: 1; }
+label.opt { color: var(--dim); font-size: 12.5px; display: inline-flex; gap: 6px; align-items: center; cursor: pointer; min-height: 44px; }
+main { padding: 20px 24px 88px; max-width: 1500px; margin: 0 auto; display: grid; gap: 28px; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px; }
+.tile b { font-size: 26px; font-variant-numeric: tabular-nums; margin-left: 8px; }
+.tile span { display: block; color: var(--dim); font-size: 12px; margin-top: 2px; }
+.sessions { display: grid; gap: 28px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 560px), 1fr)); align-items: start; }
+section.session { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; min-width: 0; }
+section.session.dead { opacity: .55; }
+.shead { display: flex; align-items: baseline; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+.shead h2 { font-size: 15px; margin: 0; }
+.shead .path { color: var(--dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.shead .sum { color: var(--dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.tree { display: grid; gap: 10px; }
+.node { position: relative; }
+.node > .kids { margin-left: 30px; margin-top: 10px; display: grid; gap: 10px; position: relative; }
+.node > .kids > .node::before { content: ""; position: absolute; left: -15px; top: -10px; width: 15px; height: 36px;
+  border-left: 1.5px solid var(--line); border-bottom: 1.5px solid var(--line); border-bottom-left-radius: 9px; }
+.node > .kids > .node:not(:last-child)::after { content: ""; position: absolute; left: -15px; top: 0; bottom: -10px;
+  border-left: 1.5px solid var(--line); }
+.node.live > .kids > .node.live::before { border-color: var(--edge, var(--green)); border-left-style: dashed; border-bottom-style: dashed; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 14px 10px 12px;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 10px; cursor: pointer; min-height: 56px;
+  transition: background .15s ease; }
+.card:hover { background: color-mix(in srgb, var(--card) 60%, var(--line)); }
+.card.live { border-color: color-mix(in srgb, var(--accent) 55%, transparent); }
+.card.done { opacity: .62; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  font-size: 11.5px; font-weight: 700; position: relative; margin-top: 2px; }
+.avatar i { position: absolute; right: -2px; bottom: -2px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--accent); border: 2px solid var(--panel); }
+.avatar.beat::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--accent);
+  animation: beat 1.6s ease-out infinite; }
+@keyframes beat { from { transform: scale(1); opacity: .7; } to { transform: scale(1.7); opacity: 0; } }
+.l1 { display: flex; gap: 8px; align-items: baseline; }
+.l1 .name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.l1 .role { color: var(--dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; flex: 1; }
+.l1 .state { color: var(--accent); font-size: 12px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.task { color: var(--soft); font-size: 12.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nowl { font-size: 12.5px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.nowl.cyan { color: var(--cyan); } .nowl.yellow { color: var(--amber); } .nowl.red { color: var(--red); }
+.strip { display: flex; gap: 3px; align-items: center; margin-top: 7px; flex-wrap: wrap; }
+.sq { width: 9px; height: 9px; border-radius: 2.5px; flex: none; }
+.strip .count { margin-left: auto; color: var(--dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.k-read { background: var(--read); } .k-write { background: var(--write); } .k-run { background: var(--run); }
+.k-handoff { background: var(--handoff); } .k-web { background: var(--web); } .k-other { background: var(--other); }
+.k-error { background: var(--red); }
+.hist { grid-column: 1 / -1; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 8px; display: grid; gap: 3px;
+  font-size: 12.5px; max-height: 340px; overflow: auto; cursor: default; }
+.hist .row { display: grid; grid-template-columns: 12px 120px minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.hist .tool { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist .what { color: var(--soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hist .when { color: var(--dim); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tl { margin-top: 18px; }
+.tl h3 { font-size: 13px; margin: 0 0 8px; display: flex; justify-content: space-between; align-items: baseline; }
+.tl h3 small { color: var(--dim); font-weight: 400; }
+.lane { display: grid; grid-template-columns: 110px minmax(0, 1fr); align-items: center; height: 22px; }
+.lane .who { color: var(--soft); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lane .track { position: relative; height: 100%;
+  background: repeating-linear-gradient(to right, var(--line) 0 1px, transparent 1px 25%); }
+.lane .life { position: absolute; top: 9px; height: 4px; border-radius: 2px; opacity: .3; }
+.lane .bar { position: absolute; top: 5px; height: 12px; border-radius: 3px; min-width: 3px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--dim); font-size: 11.5px; margin-top: 10px; }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.empty { color: var(--dim); text-align: center; padding: 56px 16px; border: 1px dashed var(--line); border-radius: 18px; }
+.empty b { color: var(--text); display: block; font-size: 15px; margin-bottom: 6px; }
+@media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } main, header { padding-left: 16px; padding-right: 16px; } }
+@media (prefers-reduced-motion: reduce) { .pulse, .avatar.beat::before { animation: none; } }
+select.lang { background: var(--card); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font: inherit; font-size: 12.5px; min-height: 32px; }
+.badge { font-size: 11px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 50%, transparent); border-radius: 999px; padding: 2px 8px; }
+.shead .proj { color: var(--dim); font-size: 12px; white-space: nowrap; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Agent Radar</h1>
+  <span class="conn"><span class="dot" id="connDot"></span><span id="connText"></span></span>
+  <span class="badge" id="demoBadge" hidden></span>
+  <span class="spacer"></span>
+  <label class="opt"><input type="checkbox" id="optDone" checked> <span id="lblDone"></span></label>
+  <label class="opt"><input type="checkbox" id="optDead"> <span id="lblDead"></span></label>
+  <select class="lang" id="lang" aria-label="Language"></select>
+</header>
+<main>
+  <div class="tiles" id="tiles"></div>
+  <div class="sessions" id="sessions"></div>
+</main>
+<script type="module">
+import { LANGUAGE_NAMES, MESSAGES, pickLang, tr } from './i18n.js'
+import { demoSessions } from './demo.js'
+
+const query = new URLSearchParams(location.search)
+const DEMO = query.has('demo')
+const LIVE = new Set(['pending', 'running', 'waiting', 'idle'])
+const STATUS = {
+  pending: ['var(--green)', 'stStarting'], running: ['var(--green)', 'stRunning'], waiting: ['var(--amber)', 'stWaiting'],
+  idle: ['var(--amber)', 'stIdle'], completed: ['var(--gray)', 'stDone'], failed: ['var(--red)', 'stFailed'], killed: ['var(--red)', 'stStopped'],
+}
+const KINDS = { read: 'kRead', write: 'kWrite', run: 'kRun', handoff: 'kHandoff', web: 'kWeb', other: 'kOther', error: 'kError' }
+const open = new Set()
+let data = null, skew = 0, lastOk = 0
+let lang = pickLang(query.get('lang') || localStorage.getItem('agent-radar-lang') || navigator.language)
+const T = (key, params) => tr(lang, key, params)
+
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+const ago = ms => {
+  const s = Math.max(0, Math.round(ms / 1000)), S = T('uSec'), M = T('uMin'), H = T('uHour')
+  if (s < 60) return s + S
+  const m = Math.floor(s / 60)
+  return m < 60 ? `${m}${M} ${s % 60}${S}` : `${Math.floor(m / 60)}${H} ${m % 60}${M}`
+}
+const took = (a, now) => { const ms = (a.endedAt ?? now) - a.startedAt; return ms < 1000 ? (ms / 1000).toFixed(1) + T('uSec') : ago(ms) }
+const isHandoff = a => a.tool === 'Agent' || a.tool === 'Task'
+const toolLabel = t => t === 'Agent' || t === 'Task' ? T('toolHandoff') : t === 'SendMessage' ? T('toolMessage') : t
+const kindOf = a => a.isError ? 'error' : ['Read', 'Grep', 'Glob'].includes(a.tool) ? 'read' : ['Edit', 'Write', 'NotebookEdit'].includes(a.tool) ? 'write'
+  : a.tool === 'Bash' ? 'run' : ['Agent', 'Task', 'SendMessage'].includes(a.tool) ? 'handoff' : ['WebFetch', 'WebSearch'].includes(a.tool) ? 'web' : 'other'
+const hueOf = k => { let h = 0; for (const c of k) h = (h * 31 + c.charCodeAt(0)) % 360; return h }
+const initials = n => { const p = n.split(/[\s:-]+/).filter(Boolean); return ((p[0]?.[0] ?? '?') + (p.length > 1 ? p[1][0] : (p[0]?.[1] ?? ''))).toLocaleUpperCase(lang) }
+
+function nowLine(r, all, nameOf, now) {
+  if (r.ask) return ['red', '🔒 ' + T('nowAsk', { x: r.ask })]
+  if (!LIVE.has(r.status)) return null
+  const kids = all.filter(k => k.parentId === r.id && LIVE.has(k.status) && k.status !== 'idle')
+  const working = r.active.filter(a => !isHandoff(a))
+  if (r.status === 'running' && working.length) return ['cyan', working.map(a => `▸ ${toolLabel(a.tool)}: ${a.summary} · ${took(a, now)}`).join('   ')]
+  if (kids.length) return ['yellow', '⏳ ' + T('nowWaitAgents', { x: kids.map(k => nameOf(k.type)).join(', ') })]
+  const h = r.active.find(isHandoff)
+  if (h) return ['yellow', '⏳ ' + T('nowWaitHandoff', { x: h.summary })]
+  if (working.length) return ['yellow', '⏳ ' + T('nowWaitTool', { x: `${toolLabel(working[0].tool)}: ${working[0].summary}` })]
+  if (r.status === 'idle') return ['yellow', '⏸ ' + T('nowIdle')]
+  if (r.status === 'waiting') return ['yellow', '⏳ ' + T('nowWaitBg')]
+  if (r.status === 'pending') return ['cyan', T('nowStarting')]
+  return ['cyan', '💭 ' + T('nowThinking')]
+}
+
+function histHtml(r, now) {
+  const rows = [...r.active.map(a => [a, true]), ...[...r.tools].reverse().map(a => [a, false])]
+  if (!rows.length) return `<div class="hist"><span class="when">${esc(T('noTools'))}</span></div>`
+  const more = r.toolCount > r.tools.length + r.active.length ? `<span class="when">${esc(T('olderCalls', { n: r.toolCount - r.tools.length - r.active.length }))}</span>` : ''
+  return '<div class="hist">' + rows.map(([a, running]) =>
+    `<div class="row"><span class="sq k-${kindOf(a)}${running ? ' pulse' : ''}"></span><span class="tool">${esc(toolLabel(a.tool))}</span><span class="what" title="${esc(a.summary)}">${esc(a.summary)}</span><span class="when">${esc(running ? T('inFlight') + ' ' + took(a, now) : took(a, now) + ' · ' + T('ago', { x: ago(now - a.endedAt) }))}</span></div>`).join('') + more + '</div>'
+}
+
+function cardHtml(s, r, isMain, now, nameOf, people) {
+  const p = people.get(r.type)
+  const live = isMain ? s.isAlive : LIVE.has(r.status)
+  const st = STATUS[r.status]
+  const color = isMain ? 'var(--green)' : (st?.[0] ?? 'var(--gray)')
+  const label = isMain ? '' : (st ? T(st[1]) : r.status)
+  const accent = r.ask ? 'var(--red)' : color
+  const name = isMain ? T('main') : (p?.name ?? r.type)
+  const role = isMain ? T('you') : (p?.role ?? '')
+  const hue = isMain ? 268 : hueOf(p?.group || r.type)
+  const beat = !isMain && (r.status === 'running' || r.status === 'pending') && s.isAlive
+  const line = live && s.isAlive ? nowLine(isMain ? { ...r, status: 'running' } : r, s.runs, nameOf, now) : null
+  const showLine = isMain && !r.active.length ? null : line
+  const key = s.sid + ':' + r.id
+  const squares = [...r.tools.slice(-36), ...r.active].map(a =>
+    `<span class="sq k-${kindOf(a)}${a.endedAt === undefined ? ' pulse' : ''}" title="${esc(toolLabel(a.tool) + (a.summary ? ': ' + a.summary : '') + ' · ' + (a.endedAt === undefined ? T('inFlight') : took(a, now)))}"></span>`).join('')
+  const state = isMain ? '' : `${r.ask ? T('stAsk') : label} · ${ago((r.endedAt ?? now) - r.startedAt)}`
+  const task = isMain ? T('mainSummary', { n: r.toolCount, m: s.runs.length }) : r.description
+  return `<div class="card ${live ? 'live' : 'done'}" style="--accent:${accent}" data-key="${esc(key)}">
+    <div class="avatar${beat ? ' beat' : ''}" style="background:hsl(${hue} 62% 46%)">${isMain ? '◆' : esc(initials(name))}<i></i></div>
+    <div><div class="l1"><span class="name">${esc(name)}</span><span class="role">${esc(role)}</span><span class="state">${esc(state)}</span></div>
+      <div class="task" title="${esc(task)}">${esc(task)}</div>
+      ${showLine ? `<div class="nowl ${showLine[0]}">${esc(showLine[1])}</div>` : ''}
+      <div class="strip">${squares}<span class="count">${esc(T('nTools', { n: r.toolCount }))}</span></div></div>
+    ${open.has(key) ? histHtml(r, now) : ''}</div>`
+}
+
+function sessionHtml(s, now, withDone) {
+  const people = new Map((s.people ?? []).map(p => [p.slug, p]))
+  const nameOf = t => people.get(t)?.name ?? t
+  const ids = new Set(s.runs.map(r => r.id))
+  const kids = new Map()
+  for (const r of s.runs) { const k = r.parentId && ids.has(r.parentId) ? r.parentId : ''; kids.set(k, [...(kids.get(k) ?? []), r]) }
+  const visible = r => withDone || LIVE.has(r.status) || (kids.get(r.id) ?? []).some(visible)
+  const order = []
+  const node = (r, isMain) => {
+    order.push([r, isMain])
+    const ch = (kids.get(isMain ? '' : r.id) ?? []).filter(visible)
+    const live = isMain || (LIVE.has(r.status) && r.status !== 'idle')
+    const edge = r.status === 'waiting' ? 'var(--amber)' : 'var(--green)'
+    return `<div class="node${live ? ' live' : ''}" style="--edge:${edge}">${cardHtml(s, r, isMain, now, nameOf, people)}${ch.length ? `<div class="kids">${ch.map(c => node(c, false)).join('')}</div>` : ''}</div>`
+  }
+  const tree = node(s.root, true)
+  const running = s.runs.filter(r => r.status === 'running' || r.status === 'pending').length
+
+  const lanes = order.filter(([r, isMain]) => !isMain || r.tools.length + r.active.length)
+  const starts = lanes.flatMap(([r, isMain]) => [isMain ? Infinity : r.startedAt, ...r.tools.map(a => a.startedAt), ...r.active.map(a => a.startedAt)])
+  const end = s.isAlive ? now : s.updatedAt
+  const t0 = Math.min(...starts, end), span = Math.max(1000, end - t0)
+  const pct = t => (Math.max(0, Math.min(1, (t - t0) / span)) * 100).toFixed(2)
+  const tl = lanes.length < 2 && !lanes.some(([r]) => r.tools.length) ? '' : `<div class="tl"><h3>${esc(T('timeline'))} <small>${esc(T('lastSpan', { x: ago(span) }))}</small></h3>${lanes.map(([r, isMain]) => {
+    const who = isMain ? T('main') : nameOf(r.type)
+    const color = STATUS[r.status]?.[0] ?? 'var(--gray)'
+    const life = isMain ? '' : `<span class="life" style="left:${pct(r.startedAt)}%;width:${(pct(r.endedAt ?? end) - pct(r.startedAt)).toFixed(2)}%;background:${color}"></span>`
+    const bars = [...r.tools, ...r.active].map(a => `<span class="bar k-${kindOf(a)}${a.endedAt === undefined && s.isAlive ? ' pulse' : ''}" style="left:${pct(a.startedAt)}%;width:${(pct(a.endedAt ?? end) - pct(a.startedAt)).toFixed(2)}%" title="${esc(`${who} · ${toolLabel(a.tool)}${a.summary ? ': ' + a.summary : ''} · ${a.endedAt === undefined ? T('inFlight') : took(a, now)}`)}"></span>`).join('')
+    return `<div class="lane"><span class="who" title="${esc(who)}">${esc(who)}</span><span class="track">${life}${bars}</span></div>`
+  }).join('')}<div class="legend">${Object.entries(KINDS).map(([k, v]) => `<span><span class="sq k-${k}"></span>${esc(T(v))}</span>`).join('')}</div></div>`
+
+  // The session's own name leads; the project folder follows it.
+  const folder = (s.cwd || '').split('/').filter(Boolean).pop() || ''
+  const title = s.title || folder || T('untitled')
+  const sum = s.isAlive ? T('sessionSummary', { a: running, b: s.runs.length }) : T('closedAgo', { x: ago(now - s.updatedAt) })
+  return `<section class="session${s.isAlive ? '' : ' dead'}"><div class="shead"><span class="dot ${s.isAlive ? (running ? 'green pulse' : 'green') : ''}"></span><h2>${esc(title)}</h2>${s.title && folder ? `<span class="proj">${esc(folder)}</span>` : ''}<span class="path" title="${esc(s.cwd)}">${esc(s.cwd)}</span><span class="sum">${esc(sum)}</span></div><div class="tree">${tree}</div>${tl}</section>`
+}
+
+function chrome() {
+  document.documentElement.lang = lang
+  document.getElementById('lblDone').textContent = T('optDone')
+  document.getElementById('lblDead').textContent = T('optDead')
+  const badge = document.getElementById('demoBadge')
+  badge.hidden = !DEMO
+  badge.textContent = T('demoBadge')
+  document.getElementById('lang').setAttribute('aria-label', T('language'))
+}
+
+function render() {
+  const now = Date.now() + skew
+  const fresh = DEMO || Date.now() - lastOk < 4000
+  document.getElementById('connDot').className = 'dot ' + (fresh ? 'green' : lastOk ? 'red' : '')
+  document.getElementById('connText').textContent = fresh ? T('connLive') : lastOk ? T('connLost') : T('connWait')
+  if (!data) return
+  const withDone = document.getElementById('optDone').checked
+  const withDead = document.getElementById('optDead').checked
+  const shown = data.sessions.filter(s => s.isAlive || withDead)
+  const alive = shown.filter(s => s.isAlive)
+  const all = alive.flatMap(s => s.runs)
+  const running = all.filter(r => r.status === 'running' || r.status === 'pending').length
+  const waiting = all.filter(r => r.status === 'waiting' || r.status === 'idle' || r.ask).length
+  const failed = all.filter(r => r.status === 'failed' || r.status === 'killed').length
+  const done = all.filter(r => !LIVE.has(r.status)).length
+  const tools = alive.reduce((n, s) => n + s.root.toolCount + s.runs.reduce((m, r) => m + r.toolCount, 0), 0)
+  document.getElementById('tiles').innerHTML = [
+    ['green' + (running ? ' pulse' : ''), running, T('tileRunning')], ['amber', waiting, T('tileWaiting')],
+    [failed ? 'red' : '', done, failed ? T('tileDoneErr', { n: failed }) : T('tileDone')], ['', tools, T('tileToolsSessions', { n: alive.length })],
+  ].map(([c, n, l]) => `<div class="tile"><span class="dot ${c}" style="display:inline-block"></span><b>${n}</b><span>${esc(l)}</span></div>`).join('')
+  const box = document.getElementById('sessions')
+  const scrolls = new Map([...box.querySelectorAll('.card[data-key] .hist')].map(h => [h.parentElement.dataset.key, h.scrollTop]))
+  box.innerHTML = shown.length ? shown.map(s => sessionHtml(s, now, withDone)).join('')
+    : `<div class="empty"><b>${esc(T('emptyTitle'))}</b>${esc(T('emptyBody'))}${data.sessions.length ? ' ' + esc(T('emptyClosed')) : ''}</div>`
+  for (const h of box.querySelectorAll('.card[data-key] .hist')) h.scrollTop = scrolls.get(h.parentElement.dataset.key) ?? 0
+}
+
+document.getElementById('sessions').addEventListener('click', e => {
+  if (e.target.closest('.hist')) return
+  const card = e.target.closest('.card[data-key]')
+  if (!card) return
+  const k = card.dataset.key
+  open.has(k) ? open.delete(k) : open.add(k)
+  render()
+})
+for (const id of ['optDone', 'optDead']) document.getElementById(id).addEventListener('change', render)
+const picker = document.getElementById('lang')
+picker.innerHTML = Object.keys(MESSAGES).map(l => `<option value="${l}">${esc(LANGUAGE_NAMES[l] ?? l)}</option>`).join('')
+picker.value = lang
+picker.addEventListener('change', () => { lang = picker.value; localStorage.setItem('agent-radar-lang', lang); chrome(); render() })
+for (const k of (query.get('open') ?? '').split(',').filter(Boolean)) open.add(k)
+
+const demoStart = Date.now()
+async function poll() {
+  if (DEMO) {
+    data = { now: Date.now(), sessions: demoSessions(demoStart) }
+  } else {
+    try {
+      const res = await fetch('/api/state', { cache: 'no-store' })
+      data = await res.json()
+      skew = data.now - Date.now()
+      lastOk = Date.now()
+    } catch {}
+  }
+  render()
+}
+chrome()
+poll()
+setInterval(poll, 1000)
+</script>
+</body>
+</html>

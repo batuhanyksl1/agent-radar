@@ -1,0 +1,7 @@
+{
+  "name": "agent-radar",
+  "version": "0.1.0",
+  "description": "Live view of every agent in your Claude Code sessions: who handed work to whom, what each one is doing right now, and a timeline of tool calls. In-app pane plus a local web page across all open sessions.",
+  "license": "MIT",
+  "types": "./types/index.d.ts"
+}
