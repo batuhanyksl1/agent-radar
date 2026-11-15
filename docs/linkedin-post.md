@@ -39,7 +39,7 @@ What it shows:
 ⚡ What each one is doing this second: "Bash: xcodebuild build · 51s".
 ⏳ What each one is waiting on: "Waiting on Kenji, Priya, Lena" or "Needs your approval: pnpm db:migrate".
 📊 A timeline of every tool call, so you can see the failed build that ate a minute.
-🖥️ All open sessions on one page. I keep it on my second monitor.
+🖥️ All open sessions on one page, each under its own name, with a tab to focus on just one. I keep it on my second monitor.
 🌍 14 languages.
 
 Two things surprised me while building it.
