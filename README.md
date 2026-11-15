@@ -26,6 +26,7 @@ It is a Claude Code plugin with two views fed by the same data:
 | **Timeline** | One lane per agent, tool calls as bars over time. You see who was busy, who sat idle, and where the failed build ate a minute. |
 | **Tool history** | Click a card (press its button in the pane) for that agent's recent calls, newest first. |
 | **Session name** | Each session leads with its own title, then its project folder. |
+| **Tabs** | One tab per open session plus **All**. A tab shows one session alone; sessions keep a fixed order, so the page does not jump as they update. |
 
 <p>
   <img src="docs/screenshots/history.png" width="49%" alt="A card opened to show an agent's tool history">

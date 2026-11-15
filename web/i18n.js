@@ -72,7 +72,8 @@ export const MESSAGES = {
   "demoBadge": "Demodaten",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Alle"
  },
  "en": {
   "appName": "Agent Radar",
@@ -146,7 +147,8 @@ export const MESSAGES = {
   "demoBadge": "demo data",
   "uSec": "s",
   "uMin": "m",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "All"
  },
  "es": {
   "appName": "Agent Radar",
@@ -220,7 +222,8 @@ export const MESSAGES = {
   "demoBadge": "datos de demo",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Todas"
  },
  "fr": {
   "appName": "Agent Radar",
@@ -294,7 +297,8 @@ export const MESSAGES = {
   "demoBadge": "données de démo",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Toutes"
  },
  "it": {
   "appName": "Agent Radar",
@@ -368,7 +372,8 @@ export const MESSAGES = {
   "demoBadge": "dati demo",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Tutte"
  },
  "ja": {
   "appName": "Agent Radar",
@@ -442,7 +447,8 @@ export const MESSAGES = {
   "demoBadge": "デモデータ",
   "uSec": "秒",
   "uMin": "分",
-  "uHour": "時間"
+  "uHour": "時間",
+  "tabAll": "すべて"
  },
  "ko": {
   "appName": "Agent Radar",
@@ -516,7 +522,8 @@ export const MESSAGES = {
   "demoBadge": "데모 데이터",
   "uSec": "초",
   "uMin": "분",
-  "uHour": "시간"
+  "uHour": "시간",
+  "tabAll": "전체"
  },
  "nl": {
   "appName": "Agent Radar",
@@ -590,7 +597,8 @@ export const MESSAGES = {
   "demoBadge": "demogegevens",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "u"
+  "uHour": "u",
+  "tabAll": "Alle"
  },
  "pl": {
   "appName": "Agent Radar",
@@ -664,7 +672,8 @@ export const MESSAGES = {
   "demoBadge": "dane demo",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Wszystkie"
  },
  "pt-BR": {
   "appName": "Agent Radar",
@@ -738,7 +747,8 @@ export const MESSAGES = {
   "demoBadge": "dados de demonstração",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Todas"
  },
  "ru": {
   "appName": "Agent Radar",
@@ -812,7 +822,8 @@ export const MESSAGES = {
   "demoBadge": "демо-данные",
   "uSec": "с",
   "uMin": "мин",
-  "uHour": "ч"
+  "uHour": "ч",
+  "tabAll": "Все"
  },
  "sv": {
   "appName": "Agent Radar",
@@ -886,7 +897,8 @@ export const MESSAGES = {
   "demoBadge": "demodata",
   "uSec": "s",
   "uMin": "min",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "Alla"
  },
  "tr": {
   "appName": "Agent Radar",
@@ -960,7 +972,8 @@ export const MESSAGES = {
   "demoBadge": "örnek veri",
   "uSec": "sn",
   "uMin": "dk",
-  "uHour": "sa"
+  "uHour": "sa",
+  "tabAll": "Tümü"
  },
  "zh-Hans": {
   "appName": "Agent Radar",
@@ -1034,7 +1047,8 @@ export const MESSAGES = {
   "demoBadge": "演示数据",
   "uSec": "秒",
   "uMin": "分",
-  "uHour": "时"
+  "uHour": "时",
+  "tabAll": "全部"
  }
 }
 

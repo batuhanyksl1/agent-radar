@@ -70,5 +70,6 @@
   "demoBadge": "demo data",
   "uSec": "s",
   "uMin": "m",
-  "uHour": "h"
+  "uHour": "h",
+  "tabAll": "All"
 }

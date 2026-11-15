@@ -92,6 +92,15 @@ section.session.dead { opacity: .55; }
 .lane .bar { position: absolute; top: 5px; height: 12px; border-radius: 3px; min-width: 3px; }
 .legend { display: flex; gap: 14px; flex-wrap: wrap; color: var(--dim); font-size: 11.5px; margin-top: 10px; }
 .legend span { display: inline-flex; gap: 5px; align-items: center; }
+.tabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.tab { flex: none; display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border-radius: 12px;
+  border: 1px solid var(--line); background: var(--card); color: var(--soft); font: inherit; font-size: 13px; cursor: pointer; max-width: 280px; }
+.tab:hover { color: var(--text); }
+.tab.on { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tab .n { font-variant-numeric: tabular-nums; font-size: 11.5px; opacity: .75; }
+.tab.dead { opacity: .55; }
+.sessions.one { grid-template-columns: minmax(0, 1fr); }
 .empty { color: var(--dim); text-align: center; padding: 56px 16px; border: 1px dashed var(--line); border-radius: 18px; }
 .empty b { color: var(--text); display: block; font-size: 15px; margin-bottom: 6px; }
 @media (max-width: 640px) { .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } main, header { padding-left: 16px; padding-right: 16px; } }
@@ -112,6 +121,7 @@ select.lang { background: var(--card); color: var(--text); border: 1px solid var
   <select class="lang" id="lang" aria-label="Language"></select>
 </header>
 <main>
+  <nav class="tabs" id="tabs" role="tablist"></nav>
   <div class="tiles" id="tiles"></div>
   <div class="sessions" id="sessions"></div>
 </main>
@@ -129,6 +139,11 @@ const STATUS = {
 const KINDS = { read: 'kRead', write: 'kWrite', run: 'kRun', handoff: 'kHandoff', web: 'kWeb', other: 'kOther', error: 'kError' }
 const open = new Set()
 let data = null, skew = 0, lastOk = 0
+// The selected tab: 'all' or a session's sid. Sessions keep the order in which
+// the page first saw them, so the one that updated last does not jump around.
+let tab = query.get('tab') || 'all'
+try { tab = query.get('tab') || localStorage.getItem('agent-radar-tab') || 'all' } catch {}
+const order = new Map()
 let lang = pickLang(query.get('lang') || localStorage.getItem('agent-radar-lang') || navigator.language)
 const T = (key, params) => tr(lang, key, params)
 
@@ -254,8 +269,20 @@ function render() {
   if (!data) return
   const withDone = document.getElementById('optDone').checked
   const withDead = document.getElementById('optDead').checked
+  for (const s of data.sessions) if (!order.has(s.sid)) order.set(s.sid, order.size)
   const shown = data.sessions.filter(s => s.isAlive || withDead)
-  const alive = shown.filter(s => s.isAlive)
+    .sort((a, b) => Number(b.isAlive) - Number(a.isAlive) || order.get(a.sid) - order.get(b.sid))
+  if (tab !== 'all' && !shown.some(s => s.sid === tab)) tab = 'all'
+  const tabsHtml = [`<button class="tab${tab === 'all' ? ' on' : ''}" data-tab="all" role="tab" aria-selected="${tab === 'all'}"><span class="lbl">${esc(T('tabAll'))}</span><span class="n">${shown.length}</span></button>`,
+    ...shown.map(s => {
+      const run = s.runs.filter(r => r.status === 'running' || r.status === 'pending').length
+      const name = s.title || (s.cwd || '').split('/').filter(Boolean).pop() || T('untitled')
+      return `<button class="tab${tab === s.sid ? ' on' : ''}${s.isAlive ? '' : ' dead'}" data-tab="${esc(s.sid)}" role="tab" aria-selected="${tab === s.sid}" title="${esc(s.cwd)}"><span class="dot ${s.isAlive ? (run ? 'green pulse' : 'green') : ''}"></span><span class="lbl">${esc(name)}</span>${run ? `<span class="n">${run}</span>` : ''}</button>`
+    })].join('')
+  const tabsEl = document.getElementById('tabs')
+  if (tabsEl.dataset.html !== tabsHtml) { tabsEl.innerHTML = tabsHtml; tabsEl.dataset.html = tabsHtml }
+  const view = tab === 'all' ? shown : shown.filter(s => s.sid === tab)
+  const alive = view.filter(s => s.isAlive)
   const all = alive.flatMap(s => s.runs)
   const running = all.filter(r => r.status === 'running' || r.status === 'pending').length
   const waiting = all.filter(r => r.status === 'waiting' || r.status === 'idle' || r.ask).length
@@ -264,11 +291,12 @@ function render() {
   const tools = alive.reduce((n, s) => n + s.root.toolCount + s.runs.reduce((m, r) => m + r.toolCount, 0), 0)
   document.getElementById('tiles').innerHTML = [
     ['green' + (running ? ' pulse' : ''), running, T('tileRunning')], ['amber', waiting, T('tileWaiting')],
-    [failed ? 'red' : '', done, failed ? T('tileDoneErr', { n: failed }) : T('tileDone')], ['', tools, T('tileToolsSessions', { n: alive.length })],
+    [failed ? 'red' : '', done, failed ? T('tileDoneErr', { n: failed }) : T('tileDone')], ['', tools, tab === 'all' ? T('tileToolsSessions', { n: alive.length }) : T('tileTools')],
   ].map(([c, n, l]) => `<div class="tile"><span class="dot ${c}" style="display:inline-block"></span><b>${n}</b><span>${esc(l)}</span></div>`).join('')
   const box = document.getElementById('sessions')
   const scrolls = new Map([...box.querySelectorAll('.card[data-key] .hist')].map(h => [h.parentElement.dataset.key, h.scrollTop]))
-  box.innerHTML = shown.length ? shown.map(s => sessionHtml(s, now, withDone)).join('')
+  box.classList.toggle('one', tab !== 'all')
+  box.innerHTML = view.length ? view.map(s => sessionHtml(s, now, withDone)).join('')
     : `<div class="empty"><b>${esc(T('emptyTitle'))}</b>${esc(T('emptyBody'))}${data.sessions.length ? ' ' + esc(T('emptyClosed')) : ''}</div>`
   for (const h of box.querySelectorAll('.card[data-key] .hist')) h.scrollTop = scrolls.get(h.parentElement.dataset.key) ?? 0
 }
@@ -279,6 +307,13 @@ document.getElementById('sessions').addEventListener('click', e => {
   if (!card) return
   const k = card.dataset.key
   open.has(k) ? open.delete(k) : open.add(k)
+  render()
+})
+document.getElementById('tabs').addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]')
+  if (!b) return
+  tab = b.dataset.tab
+  try { localStorage.setItem('agent-radar-tab', tab) } catch {}
   render()
 })
 for (const id of ['optDone', 'optDead']) document.getElementById(id).addEventListener('change', render)
