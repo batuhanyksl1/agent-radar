@@ -124,7 +124,7 @@ Claude Code session ──(plugin hooks)──▶ session state ──▶ pane (
 ```
 
 - The plugin listens to `agent.spawn` (who started whom), `tool.call` (what
-  runs, for how long, whether it failed) and `tool.check` (a call held for your
+  runs, for how long, whether it failed) and `classic.PermissionRequest` (a call held for your
   approval), and polls the agent list every 3 seconds for status changes.
 - The pane is one SVG drawn from that state. Its motion (the pulse on a running
   agent, the flow along a live handoff) is SMIL, so nothing redraws on a timer.

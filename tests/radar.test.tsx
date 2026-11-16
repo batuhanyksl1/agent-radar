@@ -104,6 +104,45 @@ test('pane: handoff tree, live line, waiting reason, tool history, state file an
   }
 })
 
+test('approval flag: shown only while a person is asked, cleared once the call settles', async ($, on) => {
+  on('command.register', () => ({ value: { command: 'radar' } }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  on('env.get', (_, e) => ({ value: e.name === 'HOME' ? '/home/x' : undefined }))
+  on('fs.list', () => ({ value: [] }))
+  on('clock.every', () => ({ value: undefined }))
+  on('clock.after', () => ({ value: undefined }))
+  const written: string[] = []
+  on('fs.write', (_, e) => {
+    written.push(String(e.text))
+    return { value: undefined }
+  })
+  on('process.run', () => ({ value: { exitCode: 0, stdout: '', stderr: '' } }))
+  on('command.run', () => ({ text: '' }))
+  on('session.start', (_, e) => ({ cwd: e.cwd }))
+  on('agent.list', () => ({ value: [] }))
+  on('tool.call', () => ({ result: {} }))
+  // The published state of the main loop, as the web page reads it.
+  const rootAsk = async () => {
+    await $.command.run({ command: 'radar-web', args: '' } as never)
+    return JSON.parse(written.at(-1) ?? '{}').root.ask as string | undefined
+  }
+  let during: string | undefined
+  let isPersonAsked = false
+  on('tool.check', () => ({ decision: 'ask' }))
+  on('classic.PermissionRequest', async () => {
+    isPersonAsked = true
+    during = await rootAsk()
+    return { decision: { behavior: 'allow' } }
+  })
+
+  await $.session.start({ cwd: '/repo', surface: 'desktop', isInteractive: true })
+  await $.tool.call({ tool: 'Bash', tool_use_id: 'b1', command: 'git push', description: 'Push' } as never)
+
+  expect(isPersonAsked).toBe(true)
+  expect(during).toContain('Bash')
+  expect(await rootAsk()).toBeUndefined()
+})
+
 test('scene: cards, waiting reason, live animation, timeline, and another language', () => {
   const people = [
     { slug: 'ada', name: 'Ada', role: 'Tech Lead', group: 'Engineering' },

@@ -286,14 +286,13 @@ export const register: Register = on => {
     return res
   })
 
-  on('tool.check', async ($, e, next) => {
-    const res = await next(e)
-    if (res.decision === 'ask') {
-      const d = describeTool(e.tool, (e.input ?? {}) as Record<string, unknown>)
-      await patch($, e.agentId, r => ({ ...r, ask: `${d.tool}: ${d.summary}` }))
-    }
+  // Raised only when the call is put to a person: a `tool.check` ask is also
+  // what the auto-mode classifier settles, with nobody waiting.
+  on('classic.PermissionRequest', async ($, e, next) => {
+    const d = describeTool(e.tool_name, (e.tool_input ?? {}) as Record<string, unknown>)
+    await patch($, e.agent_id, r => ({ ...r, ask: `${d.tool}: ${d.summary}` }))
 
-    return res
+    return next(e)
   })
 
   on('tool.call', async ($, e, next) => {
@@ -312,6 +311,7 @@ export const register: Register = on => {
       const done: Act = { ...act, endedAt: Date.now(), ...(isError ? { isError: true } : {}) }
       await patch($, e.agentId, r => ({
         ...r,
+        ask: undefined,
         active: r.active.filter(a => a.id !== act.id),
         tools: [...r.tools, done].slice(-HISTORY),
         toolCount: r.toolCount + 1,
