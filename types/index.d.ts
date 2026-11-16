@@ -35,7 +35,7 @@ export type Run = {
   ask?: string
 }
 
-export type Meta = { sid: string; cwd: string; home: string; title: string; lang: string }
+export type Meta = { sid: string; cwd: string; home: string; title: string; lang: string; transcript: string; shownAt: number }
 
 declare module 'claude-code' {
   interface PluginState {

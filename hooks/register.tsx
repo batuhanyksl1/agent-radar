@@ -23,7 +23,7 @@ const main = atom(
 )
 const meta = atom(
   { plugin: 'agent-radar', key: 'meta' } as const,
-  { sid: '', cwd: '', home: '', title: '', lang: 'en' },
+  { sid: '', cwd: '', home: '', title: '', lang: 'en', transcript: '', shownAt: 0 },
   { shape: 'meta-1' },
 )
 const open = atom({ plugin: 'agent-radar', key: 'open' } as const, '', { shape: 'open-1' })
@@ -135,6 +135,8 @@ async function publish($: EngineInterface) {
     cwd: m.cwd,
     title: m.title,
     updatedAt: Date.now(),
+    ...(m.transcript ? { transcript: m.transcript } : {}),
+    ...(m.shownAt ? { shownAt: m.shownAt } : {}),
     root: await read($, main),
     runs: await read($, runs),
     people: await read($, roster),
@@ -168,6 +170,15 @@ async function setTitle($: EngineInterface, title: string | undefined, isFallbac
   const m = await read($, meta)
   if (m.title === next || (isFallback && m.title !== '')) return
   await update($, meta, v => ({ ...v, title: next }))
+  queuePublish($)
+}
+
+async function setTranscript($: EngineInterface, e: unknown) {
+  const path = (e as { transcript_path?: unknown }).transcript_path
+  if (typeof path !== 'string' || !path.trim()) return
+  const m = await read($, meta)
+  if (m.transcript === path) return
+  await update($, meta, v => ({ ...v, transcript: path }))
   queuePublish($)
 }
 
@@ -227,10 +238,12 @@ export const register: Register = on => {
 
   // The session's name: the title the app gives it, else its first prompt.
   on('classic.SessionStart', async ($, e, next) => {
+    await setTranscript($, e)
     await setTitle($, e.session_title, false)
     return next(e)
   })
   on('classic.UserPromptSubmit', async ($, e, next) => {
+    await setTranscript($, e)
     await setTitle($, e.session_title, false)
     if (e.source === undefined || e.source === 'user') await setTitle($, e.prompt, true)
     return next(e)
@@ -246,6 +259,7 @@ export const register: Register = on => {
 
   on('command.run', { command: 'radar-web' }, async $ => {
     const { lang } = await read($, meta)
+    await update($, meta, v => ({ ...v, shownAt: Date.now() }))
     await publish($)
     const server = `${$.plugin.root}/web/server.mjs`
     // The server outlives this session; a second copy exits at once on the taken port.

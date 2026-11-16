@@ -27,6 +27,10 @@ It is a Claude Code plugin with two views fed by the same data:
 | **Tool history** | Click a card (press its button in the pane) for that agent's recent calls, newest first. |
 | **Session name** | Each session leads with its own title, then its project folder. |
 | **Tabs** | One tab per open session plus **All**. A tab shows one session alone; sessions keep a fixed order, so the page does not jump as they update. |
+| **Conversation** | Click a card in the web page for a side panel with that agent's conversation, live: what it was asked, what it wrote, each tool call as a one-line chip. A subagent's panel opens with the task it was given and ends with what it reported. |
+| **Hide and bring back** | The × on a session or an agent takes it off the page; the agent keeps running. **Hidden (n)** in the header brings it back, and so does running `/radar-web` in that session. A hidden agent that needs your approval or failed still shows as a strip at the top. |
+| **Model and tokens** | Each card shows the model the agent runs on and the tokens it has used; the session header shows the total. |
+| **May be stuck** | A quiet mark on an agent whose tool call has run for over 5 minutes, or whose last three calls all failed. |
 
 <p>
   <img src="docs/screenshots/history.png" width="49%" alt="A card opened to show an agent's tool history">
@@ -80,7 +84,7 @@ marketplace with `batuhanyksl1/agent-radar`, then Add plugin.
 | Command | What it does |
 |---|---|
 | `/radar` | Opens the pane. It also opens by itself when a session starts. |
-| `/radar-web` | Starts the local server if it is not running and opens `http://127.0.0.1:4747`. |
+| `/radar-web` | Starts the local server if it is not running and opens `http://127.0.0.1:4747`. Also brings the session back if you hid it on the page. |
 
 The pane redraws when something happens: an agent starts, calls a tool,
 finishes, or changes state. The web page refreshes every second, so its timers
@@ -141,6 +145,14 @@ paths, search patterns, the first prompt of a session as its fallback title.
 They do not hold file contents or tool output. Files older than 7 days are
 deleted; a session silent for 45 seconds is shown as closed. The server exits
 after 12 hours without a request.
+
+The conversation panel reads Claude Code's own transcript files under
+`~/.claude/projects` when you open it, and sends the page the messages and
+one-line tool summaries: no tool output, no thinking. Nothing is copied into
+the state files. Token counts come from the same transcripts. The server
+answers only requests addressed to `127.0.0.1` or `localhost`, so another web
+site open in your browser cannot read it. Which sessions and agents you hid is
+kept in `~/.claude/agent-radar/hidden.json`.
 
 ## Limits
 
